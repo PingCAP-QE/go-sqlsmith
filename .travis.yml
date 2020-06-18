@@ -5,6 +5,9 @@ language: go
 go:
   - 1.13.3
 
+services:
+  - mysql
+
 jobs:
   include:
     - name: "go-sqlsmith"
