@@ -29,11 +29,12 @@ func (c *Connect) MustExec(query string, args ...interface{}) {
 	}
 }
 
-func (c *Connect) ReConnect() error {
-	db, err := sql.Open("mysql", c.dsn)
+func (c *Connect) ReConnect(dsn string) error {
+	db, err := sql.Open("mysql", dsn)
 	if err != nil {
 		return err
 	}
+	c.dsn = dsn
 	c.db = db
 	return nil
 }
@@ -42,7 +43,7 @@ func (c *Connect) Init(dsn string) {
 	c.MustExec(SQL_MODE)
 	time.Sleep(5 * time.Second)
 	c.dsn = dsn
-	if err := c.ReConnect(); err != nil {
+	if err := c.ReConnect(dsn); err != nil {
 		panic(err)
 	}
 }

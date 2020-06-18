@@ -52,10 +52,13 @@ func main() {
 		panic(err)
 	}
 	log("init environment")
-	connect.Init(dsn)
+	connect.Init(initDSN)
 	log("init database")
 	connect.MustExec(DB_DROP)
 	connect.MustExec(DB_CREATE)
+	if err := connect.ReConnect(dsn); err != nil {
+		panic(err)
+	}
 
 	log("create tables")
 	connect.MustExec(PULLS_DROP)
