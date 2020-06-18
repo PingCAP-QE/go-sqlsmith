@@ -1,0 +1,16 @@
+sudo: false
+dist: xenial
+
+language: go
+go:
+  - 1.13.3
+
+services:
+  - mysql
+
+jobs:
+  include:
+    - name: "go-sqlsmith"
+      stage: integration-test
+      script:
+        - make integration-test
