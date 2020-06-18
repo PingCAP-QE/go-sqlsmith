@@ -6,6 +6,7 @@ GOBUILD=$(GO) build -ldflags '$(LDFLAGS)'
 
 integration-test:
 	$(GOBUILD) $(GOMOD) -o bin/test tests/*.go
+	cat ~travis/.my.cnf
 	./bin/test -host 127.0.0.1 -port 3306
 
 .PHONY: all
