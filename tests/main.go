@@ -14,6 +14,7 @@ var (
 	user   = flag.String("user", "root", "Database user")
 	passwd = flag.String("passwd", "", "Database password")
 	dbname = flag.String("db", "test", "Database name")
+	socket = flag.String("socket", "", "Database socket connect")
 )
 
 func init() {
@@ -28,9 +29,22 @@ func logError(l string, args ...interface{}) {
 	fmt.Println(append([]interface{}{"[ERROR]", l}, args...)...)
 }
 
+func getDSN() (string, string) {
+	var (
+		dsn     string
+		initDSN string
+	)
+	if *socket == "" {
+		initDSN = fmt.Sprintf("%s:%s@tcp(%s:%d)/", *user, *passwd, *host, *port)
+	} else {
+		initDSN = fmt.Sprintf("%s:%s@unix(%s)/", *user, *passwd, *socket)
+	}
+	dsn = fmt.Sprintf("%s%s", initDSN, *dbname)
+	return initDSN, dsn
+}
+
 func main() {
-	initDSN := fmt.Sprintf("%s:%s@tcp(%s:%d)/", *user, *passwd, *host, *port)
-	dsn := fmt.Sprintf("%s:%s@tcp(%s:%d)/%s", *user, *passwd, *host, *port, *dbname)
+	initDSN, dsn := getDSN()
 
 	log("connect to dsn", initDSN)
 	connect, err := NewConnect(initDSN)

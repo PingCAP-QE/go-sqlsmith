@@ -6,6 +6,6 @@ GOBUILD=$(GO) build -ldflags '$(LDFLAGS)'
 
 integration-test:
 	$(GOBUILD) $(GOMOD) -o bin/test tests/*.go
-	./bin/test -host 127.0.0.1 -port 3306
+	./bin/test -socket /var/run/mysqld/mysqld.sock
 
 .PHONY: all
