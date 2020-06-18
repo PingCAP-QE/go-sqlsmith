@@ -29,7 +29,7 @@ func logError(l string, args ...interface{}) {
 }
 
 func main() {
-	initDSN := fmt.Sprintf("%s:%s@tcp(%s:%d)", *user, *passwd, *host, *port)
+	initDSN := fmt.Sprintf("%s:%s@tcp(%s:%d)/", *user, *passwd, *host, *port)
 	dsn := fmt.Sprintf("%s:%s@tcp(%s:%d)/%s", *user, *passwd, *host, *port, *dbname)
 
 	log("connect to dsn", initDSN)
