@@ -38,9 +38,10 @@ func (c *Connect) ReConnect() error {
 	return nil
 }
 
-func (c *Connect) Init() {
+func (c *Connect) Init(dsn string) {
 	c.MustExec(SQL_MODE)
 	time.Sleep(5 * time.Second)
+	c.dsn = dsn
 	if err := c.ReConnect(); err != nil {
 		panic(err)
 	}

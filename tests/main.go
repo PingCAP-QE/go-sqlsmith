@@ -29,14 +29,16 @@ func logError(l string, args ...interface{}) {
 }
 
 func main() {
+	initDSN := fmt.Sprintf("%s:%s@tcp(%s:%d)", *user, *passwd, *host, *port)
 	dsn := fmt.Sprintf("%s:%s@tcp(%s:%d)/%s", *user, *passwd, *host, *port, *dbname)
-	fmt.Println("connect to dsn", dsn)
-	connect, err := NewConnect(dsn)
+
+	log("connect to dsn", initDSN)
+	connect, err := NewConnect(initDSN)
 	if err != nil {
 		panic(err)
 	}
 	log("init environment")
-	connect.Init()
+	connect.Init(dsn)
 	log("init database")
 	connect.MustExec(DB_DROP)
 	connect.MustExec(DB_CREATE)
