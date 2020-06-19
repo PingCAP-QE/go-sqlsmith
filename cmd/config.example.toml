@@ -1,0 +1,11 @@
+txn-begin = 20
+txn-commit = 20
+txn-rollback = 10
+ddl-create-table = 1
+ddl-alter-table = 10
+ddl-create-index = 10
+dml-select = 120
+dml-select-for-update = 30
+dml-delete = 10
+dml-update = 120
+dml-insert = 120
