@@ -1,4 +1,6 @@
 # go-sqlsmith
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fchaos-mesh%2Fgo-sqlsmith.svg?type=shield)](https://app.fossa.com/projects/git%2Bgithub.com%2Fchaos-mesh%2Fgo-sqlsmith?ref=badge_shield)
+
 
 Go version of [SQLsmith](https://github.com/anse1/sqlsmith).
 
@@ -35,3 +37,7 @@ func gosmith() {
 	sql, err := ss.Walk(node)
 }
 ```
+
+
+## License
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fchaos-mesh%2Fgo-sqlsmith.svg?type=large)](https://app.fossa.com/projects/git%2Bgithub.com%2Fchaos-mesh%2Fgo-sqlsmith?ref=badge_large)
