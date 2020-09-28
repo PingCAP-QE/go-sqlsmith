@@ -41,7 +41,6 @@ var logicFunctions = []*functionClass{
 	{ast.Xor, 2, 2, false, true, false},
 	{ast.UnaryMinus, 1, 1, false, true, false},
 	{ast.In, 2, -1, false, true, false},
-	{ast.IsTruth, 1, 1, false, true, false},
 	{ast.IsFalsity, 1, 1, false, true, false},
 	{ast.Like, 3, 3, false, true, false},
 	{ast.Regexp, 2, 2, false, true, false},
