@@ -49,7 +49,7 @@ func (s *SQLSmith) selectStmt(depth int) ast.Node {
 
 func (s *SQLSmith) selectForUpdateStmt(depth int) ast.Node {
 	node := s.selectStmt(depth)
-	node.(*ast.SelectStmt).LockTp = ast.SelectLockForUpdate
+	node.(*ast.SelectStmt).LockInfo.LockType = ast.SelectLockForUpdate
 	return node
 }
 
