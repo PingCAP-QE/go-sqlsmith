@@ -18,14 +18,14 @@ import (
 	"strings"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/pingcap/parser/mysql"
 	tidbTypes "github.com/pingcap/tidb/types"
-	uuid "github.com/satori/go.uuid"
 )
 
 // GetUUID return uuid
 func GetUUID() string {
-	return strings.ToUpper(uuid.NewV4().String())
+	return strings.ToUpper(uuid.New().String())
 }
 
 // GenerateRandDataItem rand data item with rand type
