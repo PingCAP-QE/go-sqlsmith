@@ -28,7 +28,8 @@ func (s *SQLSmith) selectStmt(depth int) ast.Node {
 		Fields: &ast.FieldList{
 			Fields: []*ast.SelectField{},
 		},
-		OrderBy: &ast.OrderByClause{},
+		OrderBy:  &ast.OrderByClause{},
+		LockInfo: &ast.SelectLockInfo{},
 	}
 
 	if depth <= 1 {

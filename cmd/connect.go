@@ -27,6 +27,11 @@ type Connect struct {
 	stmt2num map[string]int
 }
 
+type Result struct {
+	stmt string
+	err  error
+}
+
 func NewConnect(dsn string, dbname string, config *SQLSmithConfig) (*Connect, error) {
 	db, err := sql.Open("mysql", dsn)
 	if err != nil {
@@ -245,9 +250,9 @@ func (c *Connect) Run(concurrency int, ch <-chan struct{}) error {
 		return errors.Trace(err)
 	}
 	var (
-		stopCh = make(chan struct{}, concurrency)
-		doneCh = make(chan struct{}, concurrency)
-		errCh  = make(chan error, 1)
+		stopCh   = make(chan struct{}, concurrency)
+		doneCh   = make(chan struct{}, concurrency)
+		resultCh = make(chan *Result, 1)
 	)
 
 	stop := func() {
@@ -260,11 +265,16 @@ func (c *Connect) Run(concurrency int, ch <-chan struct{}) error {
 	}
 
 	for i := 0; i < concurrency; i++ {
-		go c.run(i, stopCh, doneCh, errCh)
+		go c.run(i, stopCh, doneCh, resultCh)
 	}
 	go func() {
 		for {
-			logError("stmt exec error", <-errCh)
+			result := <-resultCh
+			if result.err != nil {
+				logError(fmt.Sprintf("stmt exec error Error: stmt(%s), err(%s)", result.stmt, result.err))
+			} else if result.stmt != "" {
+				fmt.Println(result.stmt)
+			}
 		}
 	}()
 
@@ -273,37 +283,32 @@ func (c *Connect) Run(concurrency int, ch <-chan struct{}) error {
 	return nil
 }
 
-func (c *Connect) run(i int, stopCh <-chan struct{}, doneCh chan struct{}, errCh chan error) {
+func (c *Connect) run(i int, stopCh <-chan struct{}, doneCh chan struct{}, errCh chan *Result) {
 	for {
 		select {
 		case <-stopCh:
 			doneCh <- struct{}{}
 			return
 		default:
-			if err := c.RunOnce(i); err != nil {
-				errCh <- err
-			}
+			stmt, err := c.RunOnce(i)
+			errCh <- &Result{stmt, err}
 		}
 	}
 }
 
 // RunOnce ...
-func (c *Connect) RunOnce(i int) error {
-	var (
-		stmt string
-		err  error
-	)
+func (c *Connect) RunOnce(i int) (stmt string, err error) {
 	var (
 		exec = c.dbs[i]
 		tp   = c.RandStmt()
 	)
 	switch tp {
 	case TxnBegin:
-		return errors.Trace(exec.Begin())
+		return "", errors.Trace(exec.Begin())
 	case TxnCommit:
-		return errors.Trace(exec.Commit())
+		return "", errors.Trace(exec.Commit())
 	case TxnRollback:
-		return errors.Trace(exec.Rollback())
+		return "", errors.Trace(exec.Rollback())
 	case DDLCreateTable:
 		stmt, _, err = c.ss.CreateTableStmt()
 	case DDLAlterTable:
@@ -311,7 +316,7 @@ func (c *Connect) RunOnce(i int) error {
 	case DDLCreateIndex:
 		stmt, err = c.ss.CreateIndexStmt(&sqlsmith.DDLOptions{})
 	case DMLSelect:
-		stmt, _, err = c.ss.SelectStmt(1 + rand.Intn(4))
+		stmt, _, err = c.ss.SelectStmt(1)
 	case DMLSelectForUpdate:
 		stmt, _, err = c.ss.SelectForUpdateStmt(1 + rand.Intn(4))
 	case DMLDelete:
@@ -323,18 +328,18 @@ func (c *Connect) RunOnce(i int) error {
 	}
 
 	if err != nil {
-		return errors.Trace(err)
+		return
 	}
 	_, err = exec.GetExec().Exec(stmt)
 	if err != nil {
-		return errors.Trace(err)
+		return
 	}
 	switch tp {
 	case DDLCreateTable, DDLAlterTable, DDLCreateIndex:
-		return errors.Trace(c.ReloadSchema())
-	default:
-		return nil
+		err = errors.Trace(c.ReloadSchema())
 	}
+
+	return
 }
 
 func (c *Connect) InitSmithRates() error {

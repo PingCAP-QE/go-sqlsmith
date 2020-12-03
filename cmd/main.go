@@ -27,11 +27,11 @@ func init() {
 }
 
 func log(l string, args ...interface{}) {
-	fmt.Println(append([]interface{}{"[TEST]", l}, args...)...)
+	fmt.Fprintln(os.Stderr, append([]interface{}{"[TEST]", l}, args...)...)
 }
 
 func logError(l string, args ...interface{}) {
-	fmt.Println(append([]interface{}{"[ERROR]", l}, args...)...)
+	fmt.Fprintln(os.Stderr, append([]interface{}{"[ERROR]", l}, args...)...)
 }
 
 func getDSN() (string, string) {
@@ -87,7 +87,7 @@ func main() {
 		syscall.SIGINT,
 		syscall.SIGTERM,
 		syscall.SIGQUIT)
-	fmt.Printf("Got signal %d to exit.\n", <-sc)
+	fmt.Fprintf(os.Stderr, "Got signal %d to exit.\n", <-sc)
 
 	runCh <- struct{}{}
 }
