@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/chaos-mesh/go-sqlsmith"
-	"github.com/juju/errors"
+	"github.com/pingcap/errors"
 )
 
 const (

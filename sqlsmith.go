@@ -17,13 +17,12 @@ import (
 	"math/rand"
 	"time"
 
-	"github.com/juju/errors"
+	"github.com/pingcap/errors"
 	"github.com/pingcap/parser/ast"
 
 	"github.com/chaos-mesh/go-sqlsmith/stateflow"
 	"github.com/chaos-mesh/go-sqlsmith/types"
 	"github.com/chaos-mesh/go-sqlsmith/util"
-	// _ "github.com/pingcap/tidb/types/parser_driver"
 )
 
 // SQLSmith defines SQLSmith struct
