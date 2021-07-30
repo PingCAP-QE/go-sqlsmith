@@ -16,7 +16,7 @@ package stateflow
 import (
 	"fmt"
 
-	"github.com/juju/errors"
+	"github.com/pingcap/errors"
 	"github.com/pingcap/parser/ast"
 	"github.com/pingcap/parser/model"
 	parserTypes "github.com/pingcap/parser/types"

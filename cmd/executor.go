@@ -4,7 +4,7 @@ import (
 	"database/sql"
 	"sync"
 
-	"github.com/juju/errors"
+	"github.com/pingcap/errors"
 )
 
 type Executor struct {

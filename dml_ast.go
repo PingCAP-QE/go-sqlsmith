@@ -20,7 +20,7 @@ import (
 	"github.com/chaos-mesh/go-sqlsmith/util"
 )
 
-func (s *SQLSmith) selectStmt(depth int) ast.Node {
+func (s *SQLSmith) selectStmt(depth int) ast.ResultSetNode {
 	selectStmtNode := ast.SelectStmt{
 		SelectStmtOpts: &ast.SelectStmtOpts{
 			SQLCache: true,
