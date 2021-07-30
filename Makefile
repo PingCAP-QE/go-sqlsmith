@@ -9,6 +9,6 @@ sqlsmith:
 
 integration-test:
 	$(GOBUILD) $(GOMOD) -o bin/test tests/*.go
-	./bin/test
+	./bin/test -socket /var/run/mysqld/mysqld.sock
 
 .PHONY: sqlsmith
