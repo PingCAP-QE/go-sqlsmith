@@ -14,8 +14,8 @@
 package sqlsmith
 
 import (
-	"github.com/pingcap/parser/ast"
-	"github.com/pingcap/parser/opcode"
+	"github.com/pingcap/tidb/parser/ast"
+	"github.com/pingcap/tidb/parser/opcode"
 
 	"github.com/chaos-mesh/go-sqlsmith/util"
 )

@@ -13,7 +13,7 @@
 
 package builtin
 
-import "github.com/pingcap/parser/ast"
+import "github.com/pingcap/tidb/parser/ast"
 
 var logicFunctions = []*functionClass{
 	{ast.LogicAnd, 2, 2, false, true, false},

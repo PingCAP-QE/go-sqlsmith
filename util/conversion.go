@@ -13,7 +13,7 @@
 
 package util
 
-import "github.com/pingcap/parser/mysql"
+import "github.com/pingcap/tidb/parser/mysql"
 
 // Type2Tp conver type string to tp byte
 // TODO: complete conversion map

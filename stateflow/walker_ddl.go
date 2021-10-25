@@ -17,9 +17,9 @@ import (
 	"fmt"
 
 	"github.com/pingcap/errors"
-	"github.com/pingcap/parser/ast"
-	"github.com/pingcap/parser/model"
-	parserTypes "github.com/pingcap/parser/types"
+	"github.com/pingcap/tidb/parser/ast"
+	"github.com/pingcap/tidb/parser/model"
+	parserTypes "github.com/pingcap/tidb/parser/types"
 	tidbTypes "github.com/pingcap/tidb/types"
 	driver "github.com/pingcap/tidb/types/parser_driver"
 
