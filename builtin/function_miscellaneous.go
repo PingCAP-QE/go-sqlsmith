@@ -13,7 +13,7 @@
 
 package builtin
 
-import "github.com/pingcap/parser/ast"
+import "github.com/pingcap/tidb/parser/ast"
 
 var miscellaneousFunctions = []*functionClass{
 	{ast.AnyValue, 1, 1, false, true, false},

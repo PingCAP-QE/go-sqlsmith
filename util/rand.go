@@ -18,7 +18,7 @@ import (
 	"math/rand"
 	"time"
 
-	"github.com/pingcap/parser/ast"
+	"github.com/pingcap/tidb/parser/ast"
 )
 
 // Rd same to rand.Intn

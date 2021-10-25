@@ -18,8 +18,8 @@ import (
 	"time"
 
 	"github.com/ngaut/log"
-	"github.com/pingcap/parser/ast"
-	"github.com/pingcap/parser/format"
+	"github.com/pingcap/tidb/parser/ast"
+	"github.com/pingcap/tidb/parser/format"
 )
 
 // BufferOut parser ast node to SQL string

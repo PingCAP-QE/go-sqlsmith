@@ -13,7 +13,7 @@
 
 package builtin
 
-// import "github.com/pingcap/parser/ast"
+// import "github.com/pingcap/tidb/parser/ast"
 
 var jsonFunctions = []*functionClass{
 	// {ast.JSONType, 1, 1, false, true, false},

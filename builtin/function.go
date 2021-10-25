@@ -14,8 +14,8 @@
 package builtin
 
 import (
-	"github.com/pingcap/parser/ast"
-	"github.com/pingcap/parser/model"
+	"github.com/pingcap/tidb/parser/ast"
+	"github.com/pingcap/tidb/parser/model"
 
 	"github.com/chaos-mesh/go-sqlsmith/types"
 	"github.com/chaos-mesh/go-sqlsmith/util"
