@@ -251,8 +251,8 @@ func (s *StateFlow) walkValueExpr(node *driver.ValueExpr, table *types.Table, co
 		switch column.DataType {
 		case "varchar", "text":
 			node.SetString(util.GenerateStringItem(), "")
-			node.TexprNode.Type.Charset = "utf8mb4"
-			node.TexprNode.Type.Collate = "utf8mb4_bin"
+			node.TexprNode.Type.SetCharset("utf8mb4")
+			node.TexprNode.Type.SetCollate("utf8mb4_bin")
 		case "int":
 			node.SetInt64(int64(util.GenerateIntItem()))
 		case "float":

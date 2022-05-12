@@ -105,7 +105,7 @@ func (s *StateFlow) walkCreateIndexStmt(node *ast.CreateIndexStmt) (*types.Table
 
 func (s *StateFlow) makeFieldType(t string, l int) *parserTypes.FieldType {
 	fieldType := parserTypes.NewFieldType(util.Type2Tp(t))
-	fieldType.Flen = l
+	fieldType.SetFlen(l)
 	return fieldType
 }
 
