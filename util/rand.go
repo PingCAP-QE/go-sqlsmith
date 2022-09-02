@@ -142,7 +142,7 @@ func RdColumnOptions(t string) (options []ast.ColumnOptionType) {
 func RdCharset() string {
 	switch Rd(4) {
 	default:
-		return "utf8"
+		return "utf8mb4"
 	}
 }
 
