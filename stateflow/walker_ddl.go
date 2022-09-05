@@ -162,6 +162,10 @@ func (s *StateFlow) walkTableOption(node *ast.CreateTableStmt) {
 		Tp:       ast.TableOptionCharset,
 		StrValue: util.RdCharset(),
 	})
+	node.Options = append(node.Options, &ast.TableOption{
+		Tp:       ast.TableOptionCollate,
+		StrValue: "UTF8MB4_BIN",
+	})
 }
 
 func (s *StateFlow) walkPartition(node *ast.PartitionOptions, column *types.Column) {
