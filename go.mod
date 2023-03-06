@@ -15,8 +15,6 @@ require (
 	github.com/pingcap/tidb v1.1.0-beta.0.20220511160835-98c31070d958
 	github.com/pingcap/tidb/parser v0.0.0-20220511160835-98c31070d958
 	github.com/stretchr/testify v1.7.2-0.20220504104629-106ec21d14df
-	golang.org/x/net v0.0.0-20220425223048-2871e0cb64e4 // indirect
-	golang.org/x/sys v0.0.0-20220503163025-988cb79eb6c6 // indirect
-	golang.org/x/tools v0.1.10 // indirect
+	golang.org/x/net v0.7.0 // indirect
 	golang.org/x/xerrors v0.0.0-20220411194840-2f41105eb62f // indirect
 )
