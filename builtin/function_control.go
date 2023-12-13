@@ -13,7 +13,7 @@
 
 package builtin
 
-import "github.com/pingcap/tidb/parser/ast"
+import "github.com/pingcap/tidb/pkg/parser/ast"
 
 var controlFunctions = []*functionClass{
 	{ast.If, 3, 3, false, true, false},

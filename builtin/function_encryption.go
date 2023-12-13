@@ -13,7 +13,7 @@
 
 package builtin
 
-import "github.com/pingcap/tidb/parser/ast"
+import "github.com/pingcap/tidb/pkg/parser/ast"
 
 // compress and uncompress function make diff
 var encryptionFunctions = []*functionClass{

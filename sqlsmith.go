@@ -18,7 +18,7 @@ import (
 	"time"
 
 	"github.com/pingcap/errors"
-	"github.com/pingcap/tidb/parser/ast"
+	"github.com/pingcap/tidb/pkg/parser/ast"
 
 	"github.com/chaos-mesh/go-sqlsmith/stateflow"
 	"github.com/chaos-mesh/go-sqlsmith/types"

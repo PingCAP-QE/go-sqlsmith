@@ -14,10 +14,10 @@
 package stateflow
 
 import (
-	"github.com/pingcap/tidb/parser/ast"
-	"github.com/pingcap/tidb/parser/model"
-	tidbTypes "github.com/pingcap/tidb/types"
-	driver "github.com/pingcap/tidb/types/parser_driver"
+	"github.com/pingcap/tidb/pkg/parser/ast"
+	"github.com/pingcap/tidb/pkg/parser/model"
+	tidbTypes "github.com/pingcap/tidb/pkg/types"
+	driver "github.com/pingcap/tidb/pkg/types/parser_driver"
 
 	"github.com/chaos-mesh/go-sqlsmith/builtin"
 	"github.com/chaos-mesh/go-sqlsmith/types"
