@@ -16,8 +16,8 @@ package sqlsmith
 import (
 	"testing"
 
-	"github.com/pingcap/tidb/parser/ast"
-	"github.com/pingcap/tidb/parser/opcode"
+	"github.com/pingcap/tidb/pkg/parser/ast"
+	"github.com/pingcap/tidb/pkg/parser/opcode"
 )
 
 func TestSQLSmith_Walker(t *testing.T) {

@@ -17,8 +17,8 @@ import (
 	"log"
 	"math/rand"
 
-	"github.com/pingcap/tidb/parser/ast"
-	"github.com/pingcap/tidb/parser/model"
+	"github.com/pingcap/tidb/pkg/parser/ast"
+	"github.com/pingcap/tidb/pkg/parser/model"
 
 	"github.com/chaos-mesh/go-sqlsmith/types"
 	"github.com/chaos-mesh/go-sqlsmith/util"

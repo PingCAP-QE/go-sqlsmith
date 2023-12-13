@@ -17,11 +17,11 @@ import (
 	"fmt"
 
 	"github.com/pingcap/errors"
-	"github.com/pingcap/tidb/parser/ast"
-	"github.com/pingcap/tidb/parser/model"
-	parserTypes "github.com/pingcap/tidb/parser/types"
-	tidbTypes "github.com/pingcap/tidb/types"
-	driver "github.com/pingcap/tidb/types/parser_driver"
+	"github.com/pingcap/tidb/pkg/parser/ast"
+	"github.com/pingcap/tidb/pkg/parser/model"
+	parserTypes "github.com/pingcap/tidb/pkg/parser/types"
+	tidbTypes "github.com/pingcap/tidb/pkg/types"
+	driver "github.com/pingcap/tidb/pkg/types/parser_driver"
 
 	"github.com/chaos-mesh/go-sqlsmith/types"
 	"github.com/chaos-mesh/go-sqlsmith/util"

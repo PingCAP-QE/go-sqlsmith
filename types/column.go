@@ -13,7 +13,7 @@
 
 package types
 
-import "github.com/pingcap/tidb/parser/ast"
+import "github.com/pingcap/tidb/pkg/parser/ast"
 
 // Column defines database column
 type Column struct {

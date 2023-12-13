@@ -13,7 +13,7 @@
 
 package builtin
 
-import "github.com/pingcap/tidb/parser/ast"
+import "github.com/pingcap/tidb/pkg/parser/ast"
 
 var datetimeFunctions = []*functionClass{
 	{ast.AddDate, 3, 3, false, true, false},

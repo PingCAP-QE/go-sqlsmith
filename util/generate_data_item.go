@@ -19,8 +19,8 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/pingcap/tidb/parser/mysql"
-	tidbTypes "github.com/pingcap/tidb/types"
+	"github.com/pingcap/tidb/pkg/parser/mysql"
+	tidbTypes "github.com/pingcap/tidb/pkg/types"
 )
 
 // GetUUID return uuid
