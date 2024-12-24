@@ -22,7 +22,6 @@ var encryptionFunctions = []*functionClass{
 	// {ast.Compress, 1, 1, false, true, false},
 	// removed in MySQL 8.0.3
 	// {ast.Decode, 2, 2, false, true, false},
-	// removed in MySQL 8.0
 	// {ast.DesDecrypt, 1, 2, false, true, false},
 	// {ast.DesEncrypt, 1, 2, false, true, false},
 	// {ast.Encode, 2, 2, false, true, false},
