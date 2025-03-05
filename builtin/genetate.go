@@ -19,7 +19,6 @@ package builtin
 
 import (
 	"github.com/pingcap/tidb/pkg/parser/ast"
-	"github.com/pingcap/tidb/pkg/parser/model"
 )
 
 // GenerateTypeFuncCallExpr generate FuncCallExpr by given type
@@ -34,6 +33,6 @@ func GenerateTypeFuncCallExpr(t string) *ast.FuncCallExpr {
 // GenerateTimestampFuncCallExpr generate builtin func which will return date type
 func GenerateTimestampFuncCallExpr() *ast.FuncCallExpr {
 	return &ast.FuncCallExpr{
-		FnName: model.NewCIStr("CURRENT_TIMESTAMP"),
+		FnName: ast.NewCIStr("CURRENT_TIMESTAMP"),
 	}
 }

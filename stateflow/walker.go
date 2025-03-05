@@ -15,7 +15,6 @@ package stateflow
 
 import (
 	"github.com/pingcap/tidb/pkg/parser/ast"
-	"github.com/pingcap/tidb/pkg/parser/model"
 	tidbTypes "github.com/pingcap/tidb/pkg/types"
 	driver "github.com/pingcap/tidb/pkg/types/parser_driver"
 
@@ -154,7 +153,7 @@ func (s *StateFlow) walkResultSetNode(node ast.ResultSetNode) *types.Table {
 		if node, ok := node.Source.(*ast.SelectStmt); ok {
 			table := s.renameTable(s.walkSelectStmt(node))
 			if table.OriginTable != "" {
-				n.AsName = model.NewCIStr(table.Table)
+				n.AsName = ast.NewCIStr(table.Table)
 			}
 			return table
 		}
@@ -165,8 +164,8 @@ func (s *StateFlow) walkResultSetNode(node ast.ResultSetNode) *types.Table {
 
 func (s *StateFlow) walkTableName(node *ast.TableName, fn bool, online bool) *types.Table {
 	table := s.randTable(false, fn, online)
-	// node.Schema = model.NewCIStr(table.DB)
-	node.Name = model.NewCIStr(table.Table)
+	// node.Schema = ast.NewCIStr(table.DB)
+	node.Name = ast.NewCIStr(table.Table)
 	return table
 }
 
@@ -179,18 +178,18 @@ func (s *StateFlow) walkSelectStmtColumns(node *ast.SelectStmt, table *types.Tab
 				selectField = ast.SelectField{
 					Expr: &ast.ColumnNameExpr{
 						Name: &ast.ColumnName{
-							Table: model.NewCIStr(column.Table),
-							Name:  model.NewCIStr(column.Column),
+							Table: ast.NewCIStr(column.Table),
+							Name:  ast.NewCIStr(column.Column),
 						},
 					},
 				}
 			} else {
 				selectField = ast.SelectField{
-					AsName: model.NewCIStr(column.Column),
+					AsName: ast.NewCIStr(column.Column),
 					Expr: &ast.ColumnNameExpr{
 						Name: &ast.ColumnName{
-							Table: model.NewCIStr(column.OriginTable),
-							Name:  model.NewCIStr(column.OriginColumn),
+							Table: ast.NewCIStr(column.OriginTable),
+							Name:  ast.NewCIStr(column.OriginColumn),
 						},
 					},
 				}
@@ -199,7 +198,7 @@ func (s *StateFlow) walkSelectStmtColumns(node *ast.SelectStmt, table *types.Tab
 		} else {
 			node.Fields.Fields = append(node.Fields.Fields, &ast.SelectField{
 				Expr:   builtin.GenerateFuncCallExpr(table, util.Rd(4), s.stable),
-				AsName: model.NewCIStr(column.Column),
+				AsName: ast.NewCIStr(column.Column),
 			})
 		}
 	}
@@ -240,8 +239,8 @@ func (s *StateFlow) walkHintList(hintLength int, table *types.Table) (*types.Tab
 func (s *StateFlow) walkColumnNameExpr(node *ast.ColumnNameExpr, table *types.Table) *types.Column {
 	column := table.RandColumn()
 	node.Name = &ast.ColumnName{
-		Table: model.NewCIStr(column.Table),
-		Name:  model.NewCIStr(column.Column),
+		Table: ast.NewCIStr(column.Table),
+		Name:  ast.NewCIStr(column.Column),
 	}
 	return column
 }
@@ -276,8 +275,8 @@ func (s *StateFlow) walkAssignmentList(list *[]*ast.Assignment, table *types.Tab
 		}
 		assignment := ast.Assignment{
 			Column: &ast.ColumnName{
-				Table: model.NewCIStr(column.Table),
-				Name:  model.NewCIStr(column.Column),
+				Table: ast.NewCIStr(column.Table),
+				Name:  ast.NewCIStr(column.Column),
 			},
 			Expr: ast.NewValueExpr(util.GenerateDataItem(column.DataType), "", ""),
 		}
@@ -296,8 +295,8 @@ func (s *StateFlow) walkColumns(columns *[]*ast.ColumnName, table *types.Table) 
 			continue
 		}
 		*columns = append(*columns, &ast.ColumnName{
-			Table: model.NewCIStr(column.Table),
-			Name:  model.NewCIStr(column.Column),
+			Table: ast.NewCIStr(column.Table),
+			Name:  ast.NewCIStr(column.Column),
 		})
 		cols = append(cols, column)
 	}
@@ -335,7 +334,7 @@ func (s *StateFlow) walkOrderByClause(node *ast.OrderByClause, table *types.Tabl
 		item := ast.ByItem{
 			Expr: &ast.ColumnNameExpr{
 				Name: &ast.ColumnName{
-					Name: model.NewCIStr(column.Column),
+					Name: ast.NewCIStr(column.Column),
 				},
 			},
 		}
@@ -381,9 +380,9 @@ func (s *StateFlow) walkPatternInExpr(node *ast.PatternInExpr, table *types.Tabl
 	if len(columns) == 1 {
 		node.Expr = &ast.ColumnNameExpr{
 			Name: &ast.ColumnName{
-				// Schema: model.NewCIStr(""),
-				// Table: model.NewCIStr(""),
-				Name: model.NewCIStr(table.RandColumn().Column),
+				// Schema: ast.NewCIStr(""),
+				// Table: ast.NewCIStr(""),
+				Name: ast.NewCIStr(table.RandColumn().Column),
 			},
 		}
 	} else {
@@ -391,7 +390,7 @@ func (s *StateFlow) walkPatternInExpr(node *ast.PatternInExpr, table *types.Tabl
 		for index := range subColumns {
 			rowExpr.Values = append(rowExpr.Values, &ast.ColumnNameExpr{
 				Name: &ast.ColumnName{
-					Name: model.NewCIStr(columns[index].Column),
+					Name: ast.NewCIStr(columns[index].Column),
 				},
 			})
 		}

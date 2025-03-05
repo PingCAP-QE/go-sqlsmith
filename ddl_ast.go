@@ -15,7 +15,6 @@ package sqlsmith
 
 import (
 	"github.com/pingcap/tidb/pkg/parser/ast"
-	"github.com/pingcap/tidb/pkg/parser/model"
 
 	"github.com/chaos-mesh/go-sqlsmith/util"
 )
@@ -91,12 +90,12 @@ func (s *SQLSmith) alterTableSpecDropColumn() *ast.AlterTableSpec {
 }
 
 func (s *SQLSmith) createIndexStmt() *ast.CreateIndexStmt {
-	var indexType model.IndexType
+	var indexType ast.IndexType
 	switch util.Rd(2) {
 	case 0:
-		indexType = model.IndexTypeBtree
+		indexType = ast.IndexTypeBtree
 	default:
-		indexType = model.IndexTypeHash
+		indexType = ast.IndexTypeHash
 	}
 
 	node := ast.CreateIndexStmt{

@@ -15,7 +15,6 @@ package builtin
 
 import (
 	"github.com/pingcap/tidb/pkg/parser/ast"
-	"github.com/pingcap/tidb/pkg/parser/model"
 
 	"github.com/chaos-mesh/go-sqlsmith/types"
 	"github.com/chaos-mesh/go-sqlsmith/util"
@@ -31,7 +30,7 @@ func GenerateFuncCallExpr(table *types.Table, args int, stable bool) ast.ExprNod
 
 	fns := getValidArgsFunc(args, stable)
 	fn := copyFunc(fns[util.Rd(len(fns))])
-	funcCallExpr.FnName = model.NewCIStr(fn.name)
+	funcCallExpr.FnName = ast.NewCIStr(fn.name)
 	for i := 0; i < args; i++ {
 		r := util.Rd(100)
 		if r > 80 {
