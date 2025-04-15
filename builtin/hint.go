@@ -18,7 +18,6 @@ import (
 	"math/rand"
 
 	"github.com/pingcap/tidb/pkg/parser/ast"
-	"github.com/pingcap/tidb/pkg/parser/model"
 
 	"github.com/chaos-mesh/go-sqlsmith/types"
 	"github.com/chaos-mesh/go-sqlsmith/util"
@@ -91,7 +90,7 @@ func GenerateHintExpr(table *types.Table) (h *ast.TableOptimizerHint) {
 	}
 	h = new(ast.TableOptimizerHint)
 	hintKeyword := enabledKeywords[util.Rd(len(enabledKeywords))]
-	h.HintName = model.NewCIStr(hintKeyword.name)
+	h.HintName = ast.NewCIStr(hintKeyword.name)
 
 	if hintKeyword.maxArg == 0 {
 		return
@@ -114,17 +113,17 @@ func GenerateHintExpr(table *types.Table) (h *ast.TableOptimizerHint) {
 	shuffledTables := make([]ast.HintTable, 0)
 	for _, t := range table.InnerTableList {
 		shuffledTables = append(shuffledTables, ast.HintTable{
-			TableName: model.NewCIStr(t.Table),
+			TableName: ast.NewCIStr(t.Table),
 		})
 	}
 	rand.Shuffle(len(shuffledTables), func(i, j int) {
 		shuffledTables[i], shuffledTables[j] = shuffledTables[j], shuffledTables[i]
 	})
 
-	shuffledIndexes := make([]model.CIStr, 0)
+	shuffledIndexes := make([]ast.CIStr, 0)
 	for _, idx := range table.Indexes {
 		if idx != "" {
-			shuffledIndexes = append(shuffledIndexes, model.NewCIStr(idx))
+			shuffledIndexes = append(shuffledIndexes, ast.NewCIStr(idx))
 		}
 	}
 	rand.Shuffle(len(shuffledIndexes), func(i, j int) {
