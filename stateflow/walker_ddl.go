@@ -18,7 +18,6 @@ import (
 
 	"github.com/pingcap/errors"
 	"github.com/pingcap/tidb/pkg/parser/ast"
-	"github.com/pingcap/tidb/pkg/parser/model"
 	parserTypes "github.com/pingcap/tidb/pkg/parser/types"
 	tidbTypes "github.com/pingcap/tidb/pkg/types"
 	driver "github.com/pingcap/tidb/pkg/types/parser_driver"
@@ -42,7 +41,7 @@ func (s *StateFlow) walkCreateTableStmt(node *ast.CreateTableStmt) *types.Table 
 	for _, column := range table.Columns {
 		node.Cols = append(node.Cols, &ast.ColumnDef{
 			Name: &ast.ColumnName{
-				Name: model.NewCIStr(column.Column),
+				Name: ast.NewCIStr(column.Column),
 			},
 			Tp:      s.makeFieldType(column.DataType, column.DataLen),
 			Options: s.makeColumnOptions(column, column.Options),
@@ -51,7 +50,7 @@ func (s *StateFlow) walkCreateTableStmt(node *ast.CreateTableStmt) *types.Table 
 			s.makeConstraintPrimaryKey(node, column)
 		}
 	}
-	node.Table.Name = model.NewCIStr(table.Table)
+	node.Table.Name = ast.NewCIStr(table.Table)
 	s.walkTableOption(node)
 	if column := table.RandColumn(); node.Partition != nil && column != nil {
 		s.walkPartition(node.Partition, column)
@@ -64,7 +63,7 @@ func (s *StateFlow) walkCreateTableStmt(node *ast.CreateTableStmt) *types.Table 
 
 func (s *StateFlow) walkAlterTableStmt(node *ast.AlterTableStmt) *types.Table {
 	table := s.randTable(false, false, false)
-	node.Table.Name = model.NewCIStr(table.Table)
+	node.Table.Name = ast.NewCIStr(table.Table)
 	// we support only one spec now
 	// unless TiDB will print error
 	// ERROR 8200 (HY000): Unsupported multi schema change
@@ -90,13 +89,13 @@ func (s *StateFlow) walkCreateIndexStmt(node *ast.CreateIndexStmt) (*types.Table
 	if table == nil {
 		return nil, errors.New("no table available")
 	}
-	node.Table.Name = model.NewCIStr(table.Table)
+	node.Table.Name = ast.NewCIStr(table.Table)
 	node.IndexName = util.RdStringChar(5)
 	for _, column := range table.Columns {
 		node.IndexPartSpecifications = append(node.IndexPartSpecifications,
 			&ast.IndexPartSpecification{
 				Column: &ast.ColumnName{
-					Name: model.NewCIStr(column.Column),
+					Name: ast.NewCIStr(column.Column),
 				},
 			})
 	}
@@ -135,7 +134,7 @@ func (s *StateFlow) makeConstraintPrimaryKey(node *ast.CreateTableStmt, column *
 		if constraint.Tp == ast.ConstraintPrimaryKey {
 			constraint.Keys = append(constraint.Keys, &ast.IndexPartSpecification{
 				Column: &ast.ColumnName{
-					Name: model.NewCIStr(column.Column),
+					Name: ast.NewCIStr(column.Column),
 				},
 			})
 			return
@@ -146,7 +145,7 @@ func (s *StateFlow) makeConstraintPrimaryKey(node *ast.CreateTableStmt, column *
 		Keys: []*ast.IndexPartSpecification{
 			{
 				Column: &ast.ColumnName{
-					Name: model.NewCIStr(column.Column),
+					Name: ast.NewCIStr(column.Column),
 				},
 			},
 		},
@@ -170,17 +169,17 @@ func (s *StateFlow) walkTableOption(node *ast.CreateTableStmt) {
 
 func (s *StateFlow) walkPartition(node *ast.PartitionOptions, column *types.Column) {
 	// set partition Tp
-	node.Tp = model.PartitionTypeRange
+	node.Tp = ast.PartitionTypeRange
 
 	// set to int func
 	var funcCallNode = new(ast.FuncCallExpr)
 	switch column.DataType {
 	case "timestamp":
-		funcCallNode.FnName = model.NewCIStr("UNIX_TIMESTAMP")
+		funcCallNode.FnName = ast.NewCIStr("UNIX_TIMESTAMP")
 	case "datetime":
-		funcCallNode.FnName = model.NewCIStr("TO_DAYS")
+		funcCallNode.FnName = ast.NewCIStr("TO_DAYS")
 	case "varchar", "text":
-		funcCallNode.FnName = model.NewCIStr("ASCII")
+		funcCallNode.FnName = ast.NewCIStr("ASCII")
 	}
 
 	// partition by column
@@ -188,14 +187,14 @@ func (s *StateFlow) walkPartition(node *ast.PartitionOptions, column *types.Colu
 	if funcCallNode.FnName.String() == "" {
 		node.Expr = &ast.ColumnNameExpr{
 			Name: &ast.ColumnName{
-				Name: model.NewCIStr(column.Column),
+				Name: ast.NewCIStr(column.Column),
 			},
 		}
 	} else {
 		partitionByFuncCall.Args = []ast.ExprNode{
 			&ast.ColumnNameExpr{
 				Name: &ast.ColumnName{
-					Name: model.NewCIStr(column.Column),
+					Name: ast.NewCIStr(column.Column),
 				},
 			},
 		}
@@ -219,7 +218,7 @@ func (s *StateFlow) walkPartitionDefinitions(definitions *[]*ast.PartitionDefini
 	}
 
 	*definitions = append(*definitions, &ast.PartitionDefinition{
-		Name: model.NewCIStr("pn"),
+		Name: ast.NewCIStr("pn"),
 		Clause: &ast.PartitionDefinitionClauseLessThan{
 			Exprs: []ast.ExprNode{
 				&ast.MaxValueExpr{},
@@ -233,7 +232,7 @@ func (s *StateFlow) walkPartitionDefinitionsInt(definitions *[]*ast.PartitionDef
 		val := driver.ValueExpr{}
 		val.SetInt64(intPartition[i])
 		*definitions = append(*definitions, &ast.PartitionDefinition{
-			Name: model.NewCIStr(fmt.Sprintf("p%d", i)),
+			Name: ast.NewCIStr(fmt.Sprintf("p%d", i)),
 			Clause: &ast.PartitionDefinitionClauseLessThan{
 				Exprs: []ast.ExprNode{
 					&val,
@@ -248,11 +247,11 @@ func (s *StateFlow) walkPartitionDefinitionsString(definitions *[]*ast.Partition
 		val := driver.ValueExpr{}
 		val.SetInt64(int64(i))
 		*definitions = append(*definitions, &ast.PartitionDefinition{
-			Name: model.NewCIStr(fmt.Sprintf("p%d", i)),
+			Name: ast.NewCIStr(fmt.Sprintf("p%d", i)),
 			Clause: &ast.PartitionDefinitionClauseLessThan{
 				Exprs: []ast.ExprNode{
 					&ast.FuncCallExpr{
-						FnName: model.NewCIStr("ASCII"),
+						FnName: ast.NewCIStr("ASCII"),
 						Args:   []ast.ExprNode{&val},
 					},
 				},
@@ -266,11 +265,11 @@ func (s *StateFlow) walkPartitionDefinitionsDatetime(definitions *[]*ast.Partiti
 		val := driver.ValueExpr{}
 		val.SetMysqlTime(tidbTypes.NewTime(tidbTypes.FromGoTime(util.TimeMustParse(timeParseFormat, datetimePartition[i])), 0, 0))
 		*definitions = append(*definitions, &ast.PartitionDefinition{
-			Name: model.NewCIStr(fmt.Sprintf("p%d", i)),
+			Name: ast.NewCIStr(fmt.Sprintf("p%d", i)),
 			Clause: &ast.PartitionDefinitionClauseLessThan{
 				Exprs: []ast.ExprNode{
 					&ast.FuncCallExpr{
-						FnName: model.NewCIStr("TO_DAYS"),
+						FnName: ast.NewCIStr("TO_DAYS"),
 						Args:   []ast.ExprNode{&val},
 					},
 				},
@@ -284,11 +283,11 @@ func (s *StateFlow) walkPartitionDefinitionsTimestamp(definitions *[]*ast.Partit
 		val := driver.ValueExpr{}
 		val.SetMysqlTime(tidbTypes.NewTime(tidbTypes.FromGoTime(util.GenerateTimestampItem(true)), 0, 0))
 		*definitions = append(*definitions, &ast.PartitionDefinition{
-			Name: model.NewCIStr(fmt.Sprintf("p%d", i)),
+			Name: ast.NewCIStr(fmt.Sprintf("p%d", i)),
 			Clause: &ast.PartitionDefinitionClauseLessThan{
 				Exprs: []ast.ExprNode{
 					&ast.FuncCallExpr{
-						FnName: model.NewCIStr("TO_DAYS"),
+						FnName: ast.NewCIStr("TO_DAYS"),
 						Args:   []ast.ExprNode{&val},
 					},
 				},
@@ -301,7 +300,7 @@ func (s *StateFlow) alterTableSpecAddColumns(node *ast.AlterTableSpec, table *ty
 	column := s.randNewColumn()
 	node.NewColumns[0] = &ast.ColumnDef{
 		Name: &ast.ColumnName{
-			Name: model.NewCIStr(column.Column),
+			Name: ast.NewCIStr(column.Column),
 		},
 		Tp:      s.makeFieldType(column.DataType, column.DataLen),
 		Options: s.makeColumnOptions(column, column.Options),
@@ -311,7 +310,7 @@ func (s *StateFlow) alterTableSpecAddColumns(node *ast.AlterTableSpec, table *ty
 func (s *StateFlow) alterTableSpecDropColumn(node *ast.AlterTableSpec, table *types.Table) {
 	column := table.RandColumn()
 	node.OldColumnName = &ast.ColumnName{
-		Name: model.NewCIStr(column.Column),
+		Name: ast.NewCIStr(column.Column),
 	}
 }
 
