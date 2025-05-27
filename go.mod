@@ -2,8 +2,6 @@ module github.com/chaos-mesh/go-sqlsmith
 
 go 1.23.9
 
-toolchain go1.24.2
-
 require (
 	github.com/BurntSushi/toml v1.5.0
 	github.com/go-sql-driver/mysql v1.7.1
