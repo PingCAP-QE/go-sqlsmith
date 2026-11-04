@@ -15,6 +15,7 @@ package util
 
 import (
 	"bytes"
+	"strings"
 	"time"
 
 	"github.com/ngaut/log"
@@ -25,11 +26,18 @@ import (
 // BufferOut parser ast node to SQL string
 func BufferOut(node ast.Node) (string, error) {
 	out := new(bytes.Buffer)
-	err := node.Restore(format.NewRestoreCtx(format.RestoreStringDoubleQuotes, out))
+	flags := format.RestoreStringDoubleQuotes | format.RestoreNameBackQuotes
+	err := node.Restore(format.NewRestoreCtx(flags, out))
 	if err != nil {
 		return "", err
 	}
 	return string(out.Bytes()), nil
+}
+
+// QuoteIdentifier quotes one MySQL identifier, including embedded backticks.
+// Qualified names must quote each component separately.
+func QuoteIdentifier(name string) string {
+	return "`" + strings.ReplaceAll(name, "`", "``") + "`"
 }
 
 // TimeMustParse wrap time.Parse and panic when error

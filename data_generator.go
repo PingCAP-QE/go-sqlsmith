@@ -25,6 +25,9 @@ type DataGenerator struct {
 
 // GenData returns data generator
 func (s *SQLSmith) GenData(total, batch int) (*DataGenerator, error) {
+	if total < 0 || batch <= 0 {
+		return nil, errors.New("total must be nonnegative and batch size must be positive")
+	}
 	if s.currDB == "" {
 		return nil, errors.New("no selected database")
 	}
