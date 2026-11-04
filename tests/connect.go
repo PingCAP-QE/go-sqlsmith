@@ -2,48 +2,54 @@ package main
 
 import (
 	"database/sql"
-	"time"
+	"fmt"
+
+	"github.com/chaos-mesh/go-sqlsmith/internal/dbutil"
+	"github.com/go-sql-driver/mysql"
 )
 
 type Connect struct {
-	dsn string
-	db  *sql.DB
+	dbConfig *mysql.Config
+	db       *sql.DB
 }
 
-func NewConnect(dsn string) (*Connect, error) {
-	db, err := sql.Open("mysql", dsn)
+func NewConnect(dbConfig *mysql.Config) (*Connect, error) {
+	db, err := dbutil.Open(dbConfig)
 	if err != nil {
 		return nil, err
 	}
+	db.SetMaxOpenConns(2)
 	return &Connect{
-		dsn: dsn,
-		db:  db,
+		dbConfig: dbConfig,
+		db:       db,
 	}, nil
 }
 
 func (c *Connect) MustExec(query string, args ...interface{}) {
 	_, err := c.db.Exec(query, args...)
 	if err != nil {
-		logError(query, args)
+		logError("statement failed", dbutil.Target(c.dbConfig), fmt.Sprintf("sql=%q", query))
 		panic(err)
 	}
+	log("statement succeeded", dbutil.Target(c.dbConfig), fmt.Sprintf("sql=%q", query))
 }
 
-func (c *Connect) ReConnect(dsn string) error {
-	db, err := sql.Open("mysql", dsn)
+func (c *Connect) ReConnect(dbConfig *mysql.Config) error {
+	db, err := dbutil.Open(dbConfig)
 	if err != nil {
 		return err
 	}
-	c.dsn = dsn
+	db.SetMaxOpenConns(2)
+	if c.db != nil {
+		c.db.Close()
+	}
+	c.dbConfig = dbConfig
 	c.db = db
 	return nil
 }
 
-func (c *Connect) Init(dsn string) {
-	c.MustExec(SQL_MODE)
-	time.Sleep(5 * time.Second)
-	c.dsn = dsn
-	if err := c.ReConnect(dsn); err != nil {
+func (c *Connect) Init() {
+	if err := c.db.Ping(); err != nil {
 		panic(err)
 	}
 }

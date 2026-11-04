@@ -3,60 +3,71 @@ package main
 import (
 	"flag"
 	"fmt"
+	"os"
+	"time"
 
 	"github.com/chaos-mesh/go-sqlsmith"
-	_ "github.com/go-sql-driver/mysql"
+	"github.com/chaos-mesh/go-sqlsmith/internal/dbutil"
+	"github.com/chaos-mesh/go-sqlsmith/util"
+	"github.com/go-sql-driver/mysql"
 )
 
 var (
-	host   = flag.String("host", "127.0.0.1", "Database host")
-	port   = flag.Int("port", 4000, "Database port")
-	user   = flag.String("user", "root", "Database user")
-	passwd = flag.String("passwd", "", "Database password")
-	dbname = flag.String("db", "test", "Database name")
-	socket = flag.String("socket", "", "Database socket connect")
+	clearDB                = flag.Bool("clear", false, "Explicitly allow integration tests to replace the selected database")
+	host                   = flag.String("host", "127.0.0.1", "Database host")
+	port                   = flag.Int("port", 4000, "Database port")
+	user                   = flag.String("user", "root", "Database user")
+	passwd                 = flag.String("passwd", "", "Database password")
+	dbname                 = flag.String("db", "test", "Database name")
+	socket                 = flag.String("socket", "", "Database socket connect")
+	passwordFile           = flag.String("password-file", "", "Read database password from a file (or use SQLSMITH_PASSWORD)")
+	allowEmptyPassword     = flag.Bool("allow-empty-password", false, "Allow passwordless authentication to a disposable test instance")
+	allowInsecureTransport = flag.Bool("allow-insecure-transport", false, "Allow plaintext TCP to an isolated remote test instance")
+	tlsEnabled             = flag.Bool("tls", false, "Verify the database server using TLS")
+	tlsCA                  = flag.String("tls-ca", "", "PEM CA file for database TLS")
+	tlsServerName          = flag.String("tls-server-name", "", "Expected database TLS certificate name")
 )
 
-func init() {
-	flag.Parse()
-}
-
 func log(l string, args ...interface{}) {
-	fmt.Println(append([]interface{}{"[TEST]", l}, args...)...)
+	fmt.Fprintln(os.Stderr, append([]interface{}{time.Now().UTC().Format(time.RFC3339), "[TEST]", l}, args...)...)
 }
 
 func logError(l string, args ...interface{}) {
-	fmt.Println(append([]interface{}{"[ERROR]", l}, args...)...)
+	fmt.Fprintln(os.Stderr, append([]interface{}{time.Now().UTC().Format(time.RFC3339), "[ERROR]", l}, args...)...)
 }
 
-func getDSN() (string, string) {
-	var (
-		dsn     string
-		initDSN string
-	)
-	if *socket == "" {
-		initDSN = fmt.Sprintf("%s:%s@tcp(%s:%d)/", *user, *passwd, *host, *port)
-	} else {
-		initDSN = fmt.Sprintf("%s:%s@unix(%s)/", *user, *passwd, *socket)
-	}
-	dsn = fmt.Sprintf("%s%s", initDSN, *dbname)
-	return initDSN, dsn
+func getConfigs() (*mysql.Config, *mysql.Config, error) {
+	return dbutil.Configs(dbutil.Options{
+		Host: *host, Port: *port, User: *user, Password: *passwd,
+		PasswordFile: *passwordFile, Database: *dbname, Socket: *socket,
+		TLS: *tlsEnabled, TLSCA: *tlsCA, TLSServerName: *tlsServerName,
+		AllowEmptyPassword: *allowEmptyPassword, AllowInsecureTransport: *allowInsecureTransport,
+	})
 }
 
 func main() {
-	initDSN, dsn := getDSN()
+	flag.Parse()
+	if !*clearDB {
+		logError("integration tests replace the selected database; pass -clear only for a disposable database")
+		os.Exit(1)
+	}
+	bootstrapConfig, databaseConfig, err := getConfigs()
+	if err != nil {
+		logError("database configuration", err)
+		os.Exit(1)
+	}
 
-	log("connect to dsn", initDSN)
-	connect, err := NewConnect(initDSN)
+	log("connect", dbutil.Target(databaseConfig))
+	connect, err := NewConnect(bootstrapConfig)
 	if err != nil {
 		panic(err)
 	}
 	log("init environment")
-	connect.Init(initDSN)
+	connect.Init()
 	log("init database")
-	connect.MustExec(DB_DROP)
-	connect.MustExec(DB_CREATE)
-	if err := connect.ReConnect(dsn); err != nil {
+	connect.MustExec(fmt.Sprintf(DB_DROP, util.QuoteIdentifier(*dbname)))
+	connect.MustExec(fmt.Sprintf(DB_CREATE, util.QuoteIdentifier(*dbname)))
+	if err := connect.ReConnect(databaseConfig); err != nil {
 		panic(err)
 	}
 
@@ -67,7 +78,11 @@ func main() {
 	connect.MustExec(COMMENTS_TABLE)
 
 	ss := sqlsmith.New()
-	ss.LoadSchema(schema, indexes)
+	testSchema := append([][5]string(nil), schema...)
+	for i := range testSchema {
+		testSchema[i][0] = *dbname
+	}
+	ss.LoadSchema(testSchema, indexes)
 	ss.SetDB(*dbname)
 
 	// insert data
@@ -132,7 +147,8 @@ func main() {
 				logError(createSQL)
 				panic(err)
 			}
-			_, ok = tables[table]
+			_, exists := tables[table]
+			ok = !exists
 			tables[table] = struct{}{}
 		}
 		connect.MustExec(createSQL)

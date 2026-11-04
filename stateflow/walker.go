@@ -14,6 +14,8 @@
 package stateflow
 
 import (
+	"fmt"
+
 	"github.com/pingcap/tidb/pkg/parser/ast"
 	tidbTypes "github.com/pingcap/tidb/pkg/types"
 	driver "github.com/pingcap/tidb/pkg/types/parser_driver"
@@ -25,6 +27,50 @@ import (
 
 // WalkTree parse
 func (s *StateFlow) WalkTree(node ast.Node) (ast.Node, string, error) {
+	// Filter once so nested SELECTs obey the same reservation as writes.
+	originalDB := s.db
+	defer func() { s.db = originalDB }()
+	ddl := false
+	switch node.(type) {
+	case *ast.CreateTableStmt:
+	case *ast.AlterTableStmt, *ast.CreateIndexStmt:
+		ddl = true
+	case *ast.SelectStmt, *ast.UpdateStmt, *ast.InsertStmt, *ast.DeleteStmt:
+	default:
+		return nil, "", fmt.Errorf("unsupported statement type %T", node)
+	}
+	if _, create := node.(*ast.CreateTableStmt); !create {
+		available := &types.Database{Tables: make(map[string]*types.Table)}
+		if s.db != nil {
+			available.Name, available.Online = s.db.Name, s.db.Online
+			for name, table := range s.db.Tables {
+				if table == nil || len(table.Columns) == 0 {
+					continue
+				}
+
+				if _, update := node.(*ast.UpdateStmt); update {
+					writable := false
+					for _, column := range table.Columns {
+						if column.Column != "id" && column.Column != "uuid" {
+							writable = true
+							break
+						}
+					}
+					if !writable {
+						continue
+					}
+				}
+				if (ddl && table.OnlineOther) || (!ddl && s.db.Online && !table.Online) {
+					continue
+				}
+				available.Tables[name] = table
+			}
+		}
+		if len(available.Tables) == 0 {
+			return nil, "", fmt.Errorf("no eligible table in selected database")
+		}
+		s.db = available
+	}
 	var (
 		t, err = s.walkTree(node)
 		table  = ""
@@ -267,6 +313,21 @@ func (s *StateFlow) walkValueExpr(node *driver.ValueExpr, table *types.Table, co
 
 func (s *StateFlow) walkAssignmentList(list *[]*ast.Assignment, table *types.Table) {
 	columns := s.randColumns(table)
+	writable := false
+	for _, column := range columns {
+		if column.Column != "id" && column.Column != "uuid" {
+			writable = true
+			break
+		}
+	}
+	if !writable {
+		for _, column := range table.Columns {
+			if column.Column != "id" && column.Column != "uuid" {
+				columns = append(columns, column)
+				break
+			}
+		}
+	}
 	for _, column := range columns {
 		// TODO: specify primary key in type Table
 		// to avoid this hard coding

@@ -22,8 +22,7 @@ func (s *SQLSmith) CreateTableStmt() (string, string, error) {
 
 // AlterTableStmt alter table
 func (s *SQLSmith) AlterTableStmt(opt *DDLOptions) (string, error) {
-	s.setOnlineOtherTables(opt)
-	defer s.freeOnlineOtherTables()
+	defer s.setOnlineOtherTables(opt)()
 	tree := s.alterTableStmt()
 	stmt, _, err := s.Walk(tree)
 	return stmt, err
@@ -31,8 +30,7 @@ func (s *SQLSmith) AlterTableStmt(opt *DDLOptions) (string, error) {
 
 // CreateIndexStmt create index
 func (s *SQLSmith) CreateIndexStmt(opt *DDLOptions) (string, error) {
-	s.setOnlineOtherTables(opt)
-	defer s.freeOnlineOtherTables()
+	defer s.setOnlineOtherTables(opt)()
 	tree := s.createIndexStmt()
 	stmt, _, err := s.Walk(tree)
 	return stmt, err

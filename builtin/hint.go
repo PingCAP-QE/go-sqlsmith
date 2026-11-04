@@ -16,6 +16,7 @@ package builtin
 import (
 	"log"
 	"math/rand"
+	"strings"
 
 	"github.com/pingcap/tidb/pkg/parser/ast"
 
@@ -84,6 +85,21 @@ var disabledHintKeywords = []*hintClass{
 
 // GenerateHintExpr ...
 func GenerateHintExpr(table *types.Table) (h *ast.TableOptimizerHint) {
+	// Optimizer hints live inside a SQL comment. Backtick quoting cannot
+	// protect a comment terminator, so omit hints for these names only.
+	if table == nil || strings.Contains(table.Table, "*/") {
+		return nil
+	}
+	for _, t := range table.InnerTableList {
+		if t == nil || strings.Contains(t.Table, "*/") {
+			return nil
+		}
+	}
+	for _, index := range table.Indexes {
+		if strings.Contains(index, "*/") {
+			return nil
+		}
+	}
 	enabledKeywords := hintKeywords
 	if len(table.Indexes) > 0 {
 		enabledKeywords = append(enabledKeywords, indexHintKeywords...)

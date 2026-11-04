@@ -101,22 +101,28 @@ func (s *SQLSmith) EndTransaction() []string {
 }
 
 // setOnlineOtherTables is for avoiding online DDL
-func (s *SQLSmith) setOnlineOtherTables(opt *DDLOptions) {
-	if opt.OnlineDDL {
-		return
-	}
+func (s *SQLSmith) setOnlineOtherTables(opt *DDLOptions) func() {
+	previous := make(map[*types.Table]bool)
 	db := s.GetDB(s.currDB)
-	for _, table := range opt.Tables {
-		if db.Tables[table] != nil {
-			db.Tables[table].OnlineOther = true
+	if opt != nil && opt.OnlineDDL {
+		// Explicit online DDL may use every table, without erasing reservations.
+		for _, table := range db.Tables {
+			previous[table] = table.OnlineOther
+			table.OnlineOther = false
+		}
+	} else if opt != nil {
+		for _, name := range opt.Tables {
+			if table := db.Tables[name]; table != nil {
+				if _, seen := previous[table]; !seen {
+					previous[table] = table.OnlineOther
+				}
+				table.OnlineOther = true
+			}
 		}
 	}
-}
-
-// freeOnlineOtherTables clear online tables obtain by other instances
-func (s *SQLSmith) freeOnlineOtherTables() {
-	db := s.GetDB(s.currDB)
-	for _, table := range db.Tables {
-		table.OnlineOther = false
+	return func() {
+		for table, online := range previous {
+			table.OnlineOther = online
+		}
 	}
 }

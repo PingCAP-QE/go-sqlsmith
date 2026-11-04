@@ -58,16 +58,21 @@ func (s *SQLSmith) InsertStmtStr(fn bool) (string, string, error) {
 	if s.currDB == "" {
 		return "", "", errors.New("no table selected")
 	}
-	var table *types.Table
-	rdTableIndex := s.rd(len(s.Databases[s.currDB].Tables))
-	tableIndex := 0
-	for _, t := range s.Databases[s.currDB].Tables {
-		if rdTableIndex == tableIndex {
-			table = t
-			break
-		}
-		tableIndex++
+
+	db := s.Databases[s.currDB]
+	if db == nil {
+		return "", "", errors.New("selected database's schema not loaded")
 	}
+	var tables []*types.Table
+	for _, table := range db.Tables {
+		if table != nil && len(table.Columns) > 0 && (!db.Online || table.Online) {
+			tables = append(tables, table)
+		}
+	}
+	if len(tables) == 0 {
+		return "", "", errors.New("no eligible table in selected database")
+	}
+	table := tables[s.rd(len(tables))]
 
 	var columns []*types.Column
 	var columnNames []string
@@ -76,7 +81,7 @@ func (s *SQLSmith) InsertStmtStr(fn bool) (string, string, error) {
 			continue
 		}
 		columns = append(columns, column)
-		columnNames = append(columnNames, fmt.Sprintf("`%s`", column.Column))
+		columnNames = append(columnNames, util.QuoteIdentifier(column.Column))
 	}
 
 	var vals []string
@@ -93,7 +98,7 @@ func (s *SQLSmith) InsertStmtStr(fn bool) (string, string, error) {
 		}
 	}
 	sql := fmt.Sprintf("INSERT INTO %s(%s) VALUES(%s)",
-		table.Table,
+		util.QuoteIdentifier(table.Table),
 		strings.Join(columnNames, ", "),
 		strings.Join(vals, ", "))
 	return sql, table.Table, nil

@@ -29,6 +29,11 @@ func GenerateFuncCallExpr(table *types.Table, args int, stable bool) ast.ExprNod
 	funcCallExpr := ast.FuncCallExpr{}
 
 	fns := getValidArgsFunc(args, stable)
+	if len(fns) == 0 {
+		// Some modes have no function with this arity. A literal is still a
+		// valid expression and preserves the requested stability guarantee.
+		return ast.NewValueExpr(util.GenerateRandDataItem(), "", "")
+	}
 	fn := copyFunc(fns[util.Rd(len(fns))])
 	funcCallExpr.FnName = ast.NewCIStr(fn.name)
 	for i := 0; i < args; i++ {

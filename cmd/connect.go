@@ -4,9 +4,12 @@ import (
 	"database/sql"
 	"fmt"
 	"math/rand"
-	"time"
+	"sync"
 
 	"github.com/chaos-mesh/go-sqlsmith"
+	"github.com/chaos-mesh/go-sqlsmith/internal/dbutil"
+	"github.com/chaos-mesh/go-sqlsmith/util"
+	"github.com/go-sql-driver/mysql"
 	"github.com/pingcap/errors"
 )
 
@@ -15,12 +18,13 @@ const (
 )
 
 type Connect struct {
-	dsn      string
+	dbConfig *mysql.Config
 	db       *sql.DB
 	dbs      []*Executor
 	config   *SQLSmithConfig
 	dbname   string
 	ss       *sqlsmith.SQLSmith
+	smithMu  sync.Mutex
 	sum      int
 	points   []int
 	num2stmt map[int]string
@@ -32,15 +36,16 @@ type Result struct {
 	err  error
 }
 
-func NewConnect(dsn string, dbname string, config *SQLSmithConfig) (*Connect, error) {
-	db, err := sql.Open("mysql", dsn)
+func NewConnect(dbConfig *mysql.Config, dbname string, config *SQLSmithConfig) (*Connect, error) {
+	db, err := dbutil.Open(dbConfig)
 	if err != nil {
 		return nil, err
 	}
+	db.SetMaxOpenConns(2)
 	ss := sqlsmith.New()
 	ss.SetDB(dbname)
 	c := &Connect{
-		dsn:      dsn,
+		dbConfig: dbConfig,
 		db:       db,
 		config:   config,
 		dbname:   dbname,
@@ -50,26 +55,28 @@ func NewConnect(dsn string, dbname string, config *SQLSmithConfig) (*Connect, er
 		stmt2num: make(map[string]int),
 	}
 	if err := c.InitSmithRates(); err != nil {
+		db.Close()
 		return nil, errors.Trace(err)
 	}
 	return c, nil
 }
 
-func (c *Connect) ReConnect(dsn string) error {
-	db, err := sql.Open("mysql", dsn)
+func (c *Connect) ReConnect(dbConfig *mysql.Config) error {
+	db, err := dbutil.Open(dbConfig)
 	if err != nil {
 		return err
 	}
-	c.dsn = dsn
+	db.SetMaxOpenConns(2)
+	if c.db != nil {
+		c.db.Close()
+	}
+	c.dbConfig = dbConfig
 	c.db = db
 	return nil
 }
 
-func (c *Connect) Init(dsn string) {
-	c.MustExec(SQL_MODE)
-	time.Sleep(5 * time.Second)
-	c.dsn = dsn
-	if err := c.ReConnect(dsn); err != nil {
+func (c *Connect) Init() {
+	if err := c.db.Ping(); err != nil {
 		panic(err)
 	}
 }
@@ -77,9 +84,10 @@ func (c *Connect) Init(dsn string) {
 func (c *Connect) MustExec(query string, args ...interface{}) {
 	_, err := c.db.Exec(query, args...)
 	if err != nil {
-		logError(query, args)
+		logError("statement failed", dbutil.Target(c.dbConfig), fmt.Sprintf("sql=%q", query))
 		panic(err)
 	}
+	log("statement succeeded", dbutil.Target(c.dbConfig), fmt.Sprintf("sql=%q", query))
 }
 
 func (c *Connect) ReloadSchema() error {
@@ -99,7 +107,9 @@ func (c *Connect) ReloadSchema() error {
 		}
 		indexes[table] = tableIndexes
 	}
+	c.smithMu.Lock()
 	c.ss.LoadSchema(schema, indexes)
+	c.smithMu.Unlock()
 	return nil
 }
 
@@ -118,10 +128,12 @@ func (c *Connect) FetchSchema(db string) ([][5]string, error) {
 		schema     [][5]string
 		tablesInDB [][3]string
 	)
-	tables, err := c.db.Query(schemaSQL)
+	tables, err := c.db.Query(schemaSQL, db)
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
+
+	defer tables.Close()
 
 	// fetch tables need to be described
 	for tables.Next() {
@@ -133,6 +145,11 @@ func (c *Connect) FetchSchema(db string) ([][5]string, error) {
 			tablesInDB = append(tablesInDB, [3]string{schemaName, tableName, tableType})
 		}
 	}
+
+	if err := tables.Err(); err != nil {
+		return nil, errors.Trace(err)
+	}
+	tables.Close()
 
 	// desc tables
 	for _, table := range tablesInDB {
@@ -155,10 +172,11 @@ func (c *Connect) FetchSchema(db string) ([][5]string, error) {
 // FetchColumns get columns for given table
 func (c *Connect) FetchColumns(db, table string) ([][2]string, error) {
 	var columns [][2]string
-	res, err := c.db.Query(fmt.Sprintf(tableSQL, db, table))
+	res, err := c.db.Query(fmt.Sprintf(tableSQL, util.QuoteIdentifier(db), util.QuoteIdentifier(table)))
 	if err != nil {
 		return [][2]string{}, errors.Trace(err)
 	}
+	defer res.Close()
 	for res.Next() {
 		var columnName, columnType string
 		var col1, col2, col3, col4 interface{}
@@ -167,17 +185,18 @@ func (c *Connect) FetchColumns(db, table string) ([][2]string, error) {
 		}
 		columns = append(columns, [2]string{columnName, columnType})
 	}
-	return columns, nil
+	return columns, errors.Trace(res.Err())
 }
 
 // FetchIndexes get indexes for given table
 func (c *Connect) FetchIndexes(db, table string) ([]string, error) {
 	var indexes []string
-	res, err := c.db.Query(fmt.Sprintf(indexSQL, db, table))
+	res, err := c.db.Query(fmt.Sprintf(indexSQL, util.QuoteIdentifier(db), util.QuoteIdentifier(table)))
 	if err != nil {
 		return []string{}, errors.Trace(err)
 	}
 
+	defer res.Close()
 	columnTypes, err := res.ColumnTypes()
 	if err != nil {
 		return indexes, errors.Trace(err)
@@ -210,16 +229,18 @@ func (c *Connect) FetchIndexes(db, table string) ([]string, error) {
 			indexes = append(indexes, keyname)
 		}
 	}
-	return indexes, nil
+	return indexes, errors.Trace(res.Err())
 }
 
 func (c *Connect) forkDB(concurrency int) error {
 	c.dbs = make([]*Executor, concurrency)
 	for i := 0; i < concurrency; i++ {
-		db, err := sql.Open("mysql", c.dsn)
+		db, err := dbutil.Open(c.dbConfig)
 		if err != nil {
 			return err
 		}
+		db.SetMaxOpenConns(1)
+		db.SetMaxIdleConns(1)
 		c.dbs[i] = &Executor{db: db}
 	}
 	return nil
@@ -302,12 +323,16 @@ func (c *Connect) RunOnce(i int) (stmt string, err error) {
 		exec = c.dbs[i]
 		tp   = c.RandStmt()
 	)
+	c.smithMu.Lock()
 	switch tp {
 	case TxnBegin:
+		c.smithMu.Unlock()
 		return "", errors.Trace(exec.Begin())
 	case TxnCommit:
+		c.smithMu.Unlock()
 		return "", errors.Trace(exec.Commit())
 	case TxnRollback:
+		c.smithMu.Unlock()
 		return "", errors.Trace(exec.Rollback())
 	case DDLCreateTable:
 		stmt, _, err = c.ss.CreateTableStmt()
@@ -327,6 +352,8 @@ func (c *Connect) RunOnce(i int) (stmt string, err error) {
 		stmt, _, err = c.ss.InsertStmt(false)
 	}
 
+	c.smithMu.Unlock()
+
 	if err != nil {
 		return
 	}
@@ -336,6 +363,7 @@ func (c *Connect) RunOnce(i int) (stmt string, err error) {
 	}
 	switch tp {
 	case DDLCreateTable, DDLAlterTable, DDLCreateIndex:
+		log("worker DDL succeeded", fmt.Sprintf("worker=%d", i), dbutil.Target(c.dbConfig), fmt.Sprintf("sql=%q", stmt))
 		err = errors.Trace(c.ReloadSchema())
 	}
 

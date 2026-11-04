@@ -20,11 +20,15 @@ import (
 
 	"github.com/chaos-mesh/go-sqlsmith/types"
 	"github.com/chaos-mesh/go-sqlsmith/util"
+	"github.com/pingcap/tidb/pkg/parser/ast"
 )
 
 // BatchData generate testing data by schema in given batch
 // return SQLs with insert statement
 func (s *SQLSmith) BatchData(total, batchSize int) ([]string, error) {
+	if total < 0 || batchSize <= 0 {
+		return nil, errors.New("total must be nonnegative and batch size must be positive")
+	}
 	if s.currDB == "" {
 		return []string{}, errors.New("no selected database")
 	}
@@ -35,6 +39,9 @@ func (s *SQLSmith) BatchData(total, batchSize int) ([]string, error) {
 
 	var sqls []string
 	for _, table := range database.Tables {
+		if database.Online && !table.Online {
+			continue
+		}
 		var columns []*types.Column
 		for _, column := range table.Columns {
 			if column.Column == "id" {
@@ -48,7 +55,11 @@ func (s *SQLSmith) BatchData(total, batchSize int) ([]string, error) {
 		for i := 0; i < total; i++ {
 			var line []string
 			for _, column := range columns {
-				line = append(line, util.GenerateDataItemString(column.DataType))
+				value, err := util.BufferOut(ast.NewValueExpr(util.GenerateDataItem(column.DataType), "", ""))
+				if err != nil {
+					return nil, err
+				}
+				line = append(line, value)
 			}
 			lines = append(lines, line)
 			count++
@@ -68,10 +79,10 @@ func (s *SQLSmith) BatchData(total, batchSize int) ([]string, error) {
 func makeSQL(table *types.Table, columns []*types.Column, lines [][]string) string {
 	var columnNames []string
 	for _, column := range columns {
-		columnNames = append(columnNames, fmt.Sprintf("`%s`", column.Column))
+		columnNames = append(columnNames, util.QuoteIdentifier(column.Column))
 	}
-	return fmt.Sprintf("INSERT INTO `%s` (%s) VALUES \n %s",
-		table.Table,
+	return fmt.Sprintf("INSERT INTO %s (%s) VALUES \n %s",
+		util.QuoteIdentifier(table.Table),
 		strings.Join(columnNames, ", "),
 		strings.Join(mapFn(lines, func(line []string) string {
 			return fmt.Sprintf("(%s)", strings.Join(line, ", "))

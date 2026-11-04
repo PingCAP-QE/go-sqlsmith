@@ -6,49 +6,61 @@ on:
   pull_request:
     branches: [main, master]
 
+permissions:
+  contents: read
+
 jobs:
   integration-test:
-    name: go-sqlsmith
+    name: go-sqlsmith (MySQL ${{ matrix.mysql }})
     runs-on: ubuntu-24.04
-
-    services:
-      mysql:
-        image: mysql:5.7
-        env:
-          MYSQL_ROOT_PASSWORD: root
-        ports:
-          - 3306:3306
-        options: >-
-          --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -proot"
-          --health-interval=10s
-          --health-timeout=5s
-          --health-retries=5
+    strategy:
+      matrix:
+        mysql: ['5.7', '8.4']
+    env:
+      SQLSMITH_TEST_DB: sqlsmith_ci
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
 
       - name: Set up Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5
         with:
-          go-version: 1.21.0
+          go-version-file: go.mod
 
-      - name: Wait for MySQL to be ready
+      - name: Start isolated MySQL with a schema-scoped account
+        env:
+          MYSQL_VERSION: ${{ matrix.mysql }}
         run: |
-          for i in {1..30}; do
-            if mysqladmin ping -h 127.0.0.1 -uroot -proot --silent; then
-              echo "MySQL is ready"
-              break
+          password="$(openssl rand -hex 32)"
+          echo "::add-mask::$password"
+          echo "SQLSMITH_PASSWORD=$password" >> "$GITHUB_ENV"
+          docker run -d --name sqlsmith-ci -p 127.0.0.1:3306:3306 \
+            -e MYSQL_RANDOM_ROOT_PASSWORD=yes \
+            -e MYSQL_DATABASE="$SQLSMITH_TEST_DB" \
+            -e MYSQL_USER=sqlsmith -e MYSQL_PASSWORD="$password" \
+            "mysql:$MYSQL_VERSION"
+          for i in {1..60}; do
+            if docker exec -e MYSQL_PWD="$password" sqlsmith-ci \
+              mysql -usqlsmith -e 'SELECT 1' >/dev/null 2>&1; then
+              exit 0
             fi
-            echo "Waiting for MySQL..."
             sleep 2
           done
+          echo 'MySQL did not become ready' >&2
+          exit 1
 
-      - name: Install dependencies
-        run: go mod download
+      - name: Unit, security integration and race tests
+        run: go test -race ./...
 
       - name: Build
         run: make
 
-      - name: Run integration tests
-        run: make integration-test
+      - name: Run integration binary against the disposable schema
+        run: make integration-test TEST_FLAGS='-host 127.0.0.1 -port 3306 -user sqlsmith -db sqlsmith_ci -clear'
+
+      - name: Stop isolated MySQL
+        if: always()
+        run: docker rm -f sqlsmith-ci || true

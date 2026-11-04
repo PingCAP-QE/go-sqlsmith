@@ -25,7 +25,8 @@ import (
 	"github.com/chaos-mesh/go-sqlsmith/util"
 )
 
-// SQLSmith defines SQLSmith struct
+// SQLSmith is a mutable SQL generator. Use one instance per goroutine or
+// synchronize access, including access to its exported schema maps.
 type SQLSmith struct {
 	depth         int
 	maxDepth      int
